@@ -99,9 +99,46 @@ def makeBudget(siteName, scale, dateRange):
         
 def makeBudget_byLineItem(category, dateRange, lineItem, average, deviation):
     
+    """
+    chanceToHaveGrowth = .1
+    chanceToHaveZero = .01
+    chanceToHaveStepChange = .1
+    
+    stepChangeRange = .3
+    """
+    
+    chanceToHaveOutlier = 0.01  # .01
+    outlierRange = [1.2, 5]
+    
+    chanceToRamp = 0.3  # .3
+    rampRange = [.8, 1.2]
+    rampTime = [6, 60]
+    
+    chanceToOffsetCosts = .03
+    
     values = np.random.normal(average, deviation, (len(dateRange,)))
     values[values<0] = 0
     
+        
+    while np.random.uniform() < chanceToRamp:
+        randomDate = int(np.random.choice(len(values), size=1))
+        endDate = randomDate + np.random.randint(*rampTime)
+        rampAmount = np.random.uniform(*rampRange)
+        rampFactors = __generateRamp(len(values), randomDate, endDate, rampAmount)
+        
+        values = values * rampFactors
+    
+    while np.random.uniform() < chanceToOffsetCosts:
+        randomDate = int(np.random.choice(len(values)-1, size=1))
+        values[randomDate+1] += values[randomDate]
+        values[randomDate] = 0
+    
+    while np.random.uniform() < chanceToHaveOutlier:
+        # Pick a date randomly
+        randomDate = int(np.random.choice(len(values), size=1))
+        values[randomDate] = values[randomDate]*np.random.uniform(
+            outlierRange[0], outlierRange[1])
+        
     data = {
         'Date': dateRange,
         'Value': values
@@ -112,3 +149,14 @@ def makeBudget_byLineItem(category, dateRange, lineItem, average, deviation):
     dfOut['Category'] = category
     
     return dfOut
+
+def __generateRamp(length, startIndex, endIndex, rampAmount):
+    
+    ramp = np.ones((length,))
+    ramp[endIndex:] = rampAmount
+    print("Ramping to", rampAmount, " from", startIndex, " to", endIndex)
+    
+    for i in range(startIndex, min(endIndex, length)):
+        ramp[i] = i*(rampAmount-1)/(endIndex-startIndex)+1
+    
+    return ramp
