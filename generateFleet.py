@@ -147,7 +147,7 @@ def makeBudget_byLineItem(category, dateRange, lineItem, average, deviation):
     dfOut = pd.DataFrame(data)
     dfOut['Line Item'] = lineItem
     dfOut['Category'] = category
-    
+        
     return dfOut
 
 def __generateRamp(length, startIndex, endIndex, rampAmount):

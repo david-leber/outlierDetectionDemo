@@ -27,13 +27,20 @@ dfByDateWithStats = pd.merge(dfByDate, dfStats)
 
 dfByDateWithStats['stdFromAvg'] = (dfByDateWithStats['Value']-dfByDateWithStats['avg'])/dfByDateWithStats['std']
 dfByDateWithStats['outlier_3s'] = np.abs(dfByDateWithStats['stdFromAvg'])>=3
-dfByDateWithStats['outlier_2x2s'] = \
+dfByDateWithStats['outlier_r4s'] = \
     (dfByDateWithStats['stdFromAvg']>=2) & (dfByDateWithStats['stdFromAvg'].shift(1)<=-2) | \
     (dfByDateWithStats['stdFromAvg']<=-2) & (dfByDateWithStats['stdFromAvg'].shift(1)>=2) | \
     (dfByDateWithStats['stdFromAvg']>=2) & (dfByDateWithStats['stdFromAvg'].shift(-1)<=-2) | \
     (dfByDateWithStats['stdFromAvg']<=-2) & (dfByDateWithStats['stdFromAvg'].shift(-1)>=2)
+dfByDateWithStats['sideOfAverage'] = dfByDateWithStats['stdFromAvg'] / np.abs(dfByDateWithStats['stdFromAvg'])
+dfByDateWithStats['rollingSideOfAverage'] = dfByDateWithStats['sideOfAverage'].rolling(window=10).sum()
+dfByDateWithStats['outlier_10x'] = np.abs(dfByDateWithStats['rollingSideOfAverage'])>=10
 
-outliers = dfByDateWithStats[(dfByDateWithStats['outlier_3s']) | (dfByDateWithStats['outlier_2x2s'])]
+outliers = dfByDateWithStats[
+    (dfByDateWithStats['outlier_3s']) | 
+    (dfByDateWithStats['outlier_10x']) | 
+    (dfByDateWithStats['outlier_r4s']) 
+]
 
 print("Num outliers found: ", len(outliers))
 
@@ -48,5 +55,6 @@ for site in outliers['Site'].unique():
     plt.plot(curSiteData['Date'], curSiteData['avg']+3*curSiteData['std'], 'b-')
     plt.plot(curSiteData['Date'], curSiteData['avg']-3*curSiteData['std'], 'b-')
     plt.plot(curSiteOutliers.loc[curSiteOutliers['outlier_3s'], 'Date'], curSiteOutliers.loc[curSiteOutliers['outlier_3s'], 'Value'], 'r.')
-    plt.plot(curSiteOutliers.loc[curSiteOutliers['outlier_2x2s'], 'Date'], curSiteOutliers.loc[curSiteOutliers['outlier_2x2s'], 'Value'], 'g.')
-    plt.title(site)
+    plt.plot(curSiteOutliers.loc[curSiteOutliers['outlier_r4s'], 'Date'], curSiteOutliers.loc[curSiteOutliers['outlier_r4s'], 'Value'], 'g.')
+    plt.plot(curSiteOutliers.loc[curSiteOutliers['outlier_10x'], 'Date'], curSiteOutliers.loc[curSiteOutliers['outlier_10x'], 'Value'], 'c.')
+plt.title(site)
